@@ -3,6 +3,8 @@ from src.helper import download_embeddings
 from langchain_pinecone import PineconeVectorStore
 from langchain_openai import ChatOpenAI
 from langchain_classic.chains import create_retrieval_chain
+from langchain_classic.memory import ConversationBufferMemory
+from langchain_classic.chains import ConversationalRetrievalChain
 from langchain_classic.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.prompts import ChatPromptTemplate
 from dotenv import load_dotenv
@@ -31,6 +33,12 @@ docsearch = PineconeVectorStore.from_existing_index(
 retriever = docsearch.as_retriever(search_type="similarity", search_kwargs={"k": 60})
 
 chatmodel = ChatOpenAI(model="gpt-4o-mini")
+memory = ConversationBufferMemory(
+    memory_key="chat_history",
+    return_messages=True,
+    output_key="answer"
+)
+
 prompt = ChatPromptTemplate.from_messages(
     [
         ("system", systemprompt),
@@ -38,10 +46,14 @@ prompt = ChatPromptTemplate.from_messages(
     ]
 )
 
-question_answer_chain = create_stuff_documents_chain(
-    chatmodel, prompt
+rag_chain = ConversationalRetrievalChain.from_llm(
+    llm=chatmodel,
+    retriever=retriever,
+    memory=memory,
+    combine_docs_chain_kwargs={"prompt": prompt},
+    return_source_documents=True,
+    output_key="answer"
 )
-rag_chain = create_retrieval_chain(retriever, question_answer_chain)
 
 
 @app.route("/")
