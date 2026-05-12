@@ -63,7 +63,7 @@ def index():
 @app.route("/get", methods=["GET", "POST"])
 def chat():
     user_input = request.form["msg"]
-    response = rag_chain.invoke({"input": user_input})
+    response = rag_chain.invoke({"question": user_input})
     return str(response["answer"])
 
 if __name__ == "__main__":
